@@ -94,6 +94,7 @@ data class BrowserUiState(
     val renameItem: FileItem? = null,
     val showBatchRenameDialog: Boolean = false,
     val showNewFolderDialog: Boolean = false,
+    val showNewTxtFileDialog: Boolean = false,
     val rootState: RootState = RootState.UNKNOWN,
     val rootEnabled: Boolean = false,
     val selinuxContext: String? = null,
@@ -1261,6 +1262,32 @@ class BrowserViewModel @Inject constructor(
 
     fun showNewFolderDialog() { _state.update { it.copy(showNewFolderDialog = true) } }
     fun dismissNewFolderDialog() { _state.update { it.copy(showNewFolderDialog = false) } }
+    fun showNewTxtFileDialog() { _state.update { it.copy(showNewTxtFileDialog = true) } }
+    fun dismissNewTxtFileDialog() { _state.update { it.copy(showNewTxtFileDialog = false) } }
+    fun createTxtFile(name: String) {
+        viewModelScope.launch {
+            val fileName = if (!name.endsWith(".txt", ignoreCase = true)) "$name.txt" else name
+            val path = if (UsbPathCodec.isUsbPath(_state.value.currentPath)) {
+                UsbPathCodec.childPath(_state.value.currentPath, fileName)
+            } else {
+                "${_state.value.currentPath}/$fileName"
+            }
+            val repository = repoFactory.getRepository(path)
+            val matrix = repository.capabilityMatrix(path)
+            diagnosticLog.logCapabilities(matrix)
+            if (!matrix.isActionEnabled(RepositoryOperation.CREATE_FILE)) {
+                _events.emit(BrowserEvent.Toast(matrix.explanation(RepositoryOperation.CREATE_FILE)))
+                return@launch
+            }
+            repository.createFile(path)
+                .onSuccess {
+                    _state.update { it.copy(showNewTxtFileDialog = false) }
+                    refresh()
+                    _events.emit(BrowserEvent.Toast("Text file created"))
+                }
+                .onFailure { e -> _events.emit(BrowserEvent.Toast("Create text file failed: ${e.message}")) }
+        }
+    }
     fun showProperties(item: FileItem) { _state.update { it.copy(propertiesItem = item) } }
     fun dismissProperties() { _state.update { it.copy(propertiesItem = null) } }
     fun showRename(item: FileItem) { _state.update { it.copy(renameItem = item) } }

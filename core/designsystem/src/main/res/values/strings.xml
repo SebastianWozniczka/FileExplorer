@@ -60,6 +60,8 @@
     <string name="connected">Connected</string>
     <string name="more">More</string>
     <string name="new_folder">New folder</string>
+    <string name="new_txt_file" translatable="false">New text file</string>
+    <string name="new_txt_file_prompt" translatable="false">Enter text file name</string>
     <string name="properties">Properties</string>
     <string name="select">Select</string>
     <string name="copy">Copy</string>

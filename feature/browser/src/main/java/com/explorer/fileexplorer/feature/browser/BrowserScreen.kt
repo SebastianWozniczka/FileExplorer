@@ -259,6 +259,8 @@ fun BrowserScreen(
                         onToggleColumn = viewModel::toggleColumn,
                         onNewFolder = viewModel::showNewFolderDialog,
                         canCreateFolder = state.capabilityMatrix.isActionEnabled(RepositoryOperation.CREATE_DIRECTORY),
+                        onNewTxtFile = viewModel::showNewTxtFileDialog,
+                        canCreateFile = state.capabilityMatrix.isActionEnabled(RepositoryOperation.CREATE_FILE),
                         viewMode = state.viewMode, visibleColumns = state.visibleColumns, showHidden = state.showHidden,
                         canPaste = state.canPaste, onPaste = viewModel::paste,
                         rootEnabled = state.rootEnabled, isRootPath = state.isRootPath,
@@ -462,6 +464,11 @@ fun BrowserScreen(
             confirmText = stringResource(DesignSystemR.string.create),
             onConfirm = viewModel::createFolder, onDismiss = viewModel::dismissNewFolderDialog)
     }
+    if (state.showNewTxtFileDialog) {
+        InputDialog(title = stringResource(DesignSystemR.string.new_txt_file), label = stringResource(DesignSystemR.string.new_txt_file_prompt), initial = "document.txt",
+            confirmText = stringResource(DesignSystemR.string.create),
+            onConfirm = viewModel::createTxtFile, onDismiss = viewModel::dismissNewTxtFileDialog)
+    }
     state.renameItem?.let { item ->
         InputDialog(title = stringResource(DesignSystemR.string.rename), label = stringResource(DesignSystemR.string.new_name), initial = item.name,
             confirmText = stringResource(DesignSystemR.string.rename),
@@ -559,7 +566,9 @@ fun BrowserScreen(
 private fun BrowserTopBar(
     onMenuClick: () -> Unit, onSearchClick: () -> Unit, onSortClick: () -> Unit,
     onViewToggle: () -> Unit, onToggleHidden: () -> Unit, onToggleColumn: (FileColumn) -> Unit,
-    onNewFolder: () -> Unit, canCreateFolder: Boolean, viewMode: ViewMode, visibleColumns: Set<FileColumn>, showHidden: Boolean,
+    onNewFolder: () -> Unit, canCreateFolder: Boolean,
+    onNewTxtFile: () -> Unit, canCreateFile: Boolean,
+    viewMode: ViewMode, visibleColumns: Set<FileColumn>, showHidden: Boolean,
     canPaste: Boolean, onPaste: () -> Unit,
     rootEnabled: Boolean, isRootPath: Boolean, insideArchive: Boolean,
     dualPaneEnabled: Boolean, canExtract: Boolean, onToggleDualPane: () -> Unit, onExtractAll: () -> Unit,
@@ -612,6 +621,8 @@ private fun BrowserTopBar(
                 if (!insideArchive) {
                     DropdownMenuItem(text = { Text(stringResource(DesignSystemR.string.new_folder)) }, enabled = canCreateFolder,
                         onClick = { onNewFolder(); moreExpanded = false }, leadingIcon = { Icon(Icons.Filled.CreateNewFolder, null) })
+                    DropdownMenuItem(text = { Text(stringResource(DesignSystemR.string.new_txt_file)) }, enabled = canCreateFile,
+                        onClick = { onNewTxtFile(); moreExpanded = false }, leadingIcon = { Icon(Icons.Filled.Description, null) })
                 }
             }
         },
