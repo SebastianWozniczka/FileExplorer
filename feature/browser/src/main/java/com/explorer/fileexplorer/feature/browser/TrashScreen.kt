@@ -320,7 +320,7 @@ private fun TrashListItem(
                 if (selectionMode && selected) {
                     Icon(
                         Icons.Filled.CheckCircle,
-                        contentDescription = stringResource(DesignSystemR.string.selected),
+                        contentDescription = stringResource(DesignSystemR.string.file_selected),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp),
                     )

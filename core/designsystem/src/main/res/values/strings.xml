@@ -106,10 +106,10 @@
     <string name="link_target">Link target</string>
     <string name="selinux">SELinux</string>
 
-    <string name="search_files_hint">Search files...</string>
+    <string name="search_files_hint">Search files…</string>
     <string name="regex">Regex</string>
     <string name="hidden">Hidden</string>
-    <string name="found_count">%1$d found...</string>
+    <string name="found_count">%1$d found…</string>
     <string name="results_count">%1$d results</string>
     <string name="recent_searches">Recent searches</string>
     <string name="recent_locations">Recent locations</string>
@@ -341,7 +341,7 @@
     <string name="change_retention_settings">Change retention in Settings</string>
     <string name="restore">Restore</string>
     <string name="empty_trash">Empty Trash</string>
-    <string name="selected">Selected</string>
+    <string name="file_selected">Selected</string>
     <string name="trash_empty">Trash is empty</string>
     <string name="deleted_at">Deleted %1$s</string>
     <string name="folder">Folder</string>
