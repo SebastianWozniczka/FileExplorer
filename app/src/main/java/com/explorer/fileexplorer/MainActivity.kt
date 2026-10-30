@@ -1,5 +1,6 @@
 package com.explorer.fileexplorer
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,6 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.explorer.fileexplorer.core.designsystem.FileExplorerTheme
 import com.explorer.fileexplorer.core.designsystem.R as DesignSystemR
@@ -20,6 +24,7 @@ import com.explorer.fileexplorer.core.designsystem.ThemeMode
 import com.explorer.fileexplorer.core.storage.PermissionHelper
 import com.explorer.fileexplorer.feature.settings.SettingsRepository
 import com.explorer.fileexplorer.navigation.AppNavigation
+import com.explorer.fileexplorer.navigation.Routes
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -30,16 +35,16 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var permissionHelper: PermissionHelper
     @Inject lateinit var settingsRepository: SettingsRepository
 
-    // Tracked at the activity level so onResume can refresh it after the user
-    // returns from the system settings page — Compose will recompose any
-    // collector when this MutableState changes.
     private val hasPermissionState = mutableStateOf(false)
     private val limitedStorageState = mutableStateOf(false)
+    private val shortcutRouteState = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         hasPermissionState.value = permissionHelper.hasFullStorageAccess()
+        shortcutRouteState.value = extractShortcutRoute(intent)
+        publishDynamicShortcuts()
 
         setContent {
             val themeModeFlow = remember(settingsRepository) {
@@ -58,6 +63,7 @@ class MainActivity : ComponentActivity() {
                             initialPath = if (limitedStorageState.value) {
                                 permissionHelper.scopedStorageRootPath()
                             } else null,
+                            initialRoute = shortcutRouteState.value,
                         )
                     } else {
                         PermissionScreen(
@@ -74,9 +80,92 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        shortcutRouteState.value = extractShortcutRoute(intent)
+    }
+
     override fun onResume() {
         super.onResume()
         hasPermissionState.value = permissionHelper.hasFullStorageAccess()
+    }
+
+    private fun extractShortcutRoute(intent: Intent?): String? {
+        val route = intent?.getStringExtra("shortcut_route") ?: return null
+        return when (route) {
+            "search" -> Routes.SEARCH
+            "network" -> Routes.NETWORK
+            "cloud" -> Routes.CLOUD
+            "apps" -> Routes.APPS
+            "analyzer" -> Routes.ANALYZER
+            "transfers" -> Routes.TRANSFERS
+            else -> null
+        }
+    }
+
+    private fun publishDynamicShortcuts() {
+        val context = applicationContext
+        val shortcuts = listOf(
+            ShortcutInfoCompat.Builder(context, "dynamic_search")
+                .setShortLabel(getString(R.string.shortcut_search_short))
+                .setLongLabel(getString(R.string.shortcut_search_long))
+                .setIcon(IconCompat.createWithResource(context, android.R.drawable.ic_menu_search))
+                .setIntent(Intent(context, MainActivity::class.java).apply {
+                    action = "com.explorer.fileexplorer.ACTION_SHORTCUT"
+                    putExtra("shortcut_route", "search")
+                })
+                .build(),
+            ShortcutInfoCompat.Builder(context, "dynamic_network")
+                .setShortLabel(getString(R.string.shortcut_network_short))
+                .setLongLabel(getString(R.string.shortcut_network_long))
+                .setIcon(IconCompat.createWithResource(context, android.R.drawable.ic_menu_share))
+                .setIntent(Intent(context, MainActivity::class.java).apply {
+                    action = "com.explorer.fileexplorer.ACTION_SHORTCUT"
+                    putExtra("shortcut_route", "network")
+                })
+                .build(),
+            ShortcutInfoCompat.Builder(context, "dynamic_cloud")
+                .setShortLabel(getString(R.string.shortcut_cloud_short))
+                .setLongLabel(getString(R.string.shortcut_cloud_long))
+                .setIcon(IconCompat.createWithResource(context, android.R.drawable.ic_menu_compass))
+                .setIntent(Intent(context, MainActivity::class.java).apply {
+                    action = "com.explorer.fileexplorer.ACTION_SHORTCUT"
+                    putExtra("shortcut_route", "cloud")
+                })
+                .build(),
+            ShortcutInfoCompat.Builder(context, "dynamic_apps")
+                .setShortLabel(getString(R.string.shortcut_apps_short))
+                .setLongLabel(getString(R.string.shortcut_apps_long))
+                .setIcon(IconCompat.createWithResource(context, android.R.drawable.ic_menu_manage))
+                .setIntent(Intent(context, MainActivity::class.java).apply {
+                    action = "com.explorer.fileexplorer.ACTION_SHORTCUT"
+                    putExtra("shortcut_route", "apps")
+                })
+                .build(),
+            ShortcutInfoCompat.Builder(context, "dynamic_analyzer")
+                .setShortLabel(getString(R.string.shortcut_analyzer_short))
+                .setLongLabel(getString(R.string.shortcut_analyzer_long))
+                .setIcon(IconCompat.createWithResource(context, android.R.drawable.ic_menu_info_details))
+                .setIntent(Intent(context, MainActivity::class.java).apply {
+                    action = "com.explorer.fileexplorer.ACTION_SHORTCUT"
+                    putExtra("shortcut_route", "analyzer")
+                })
+                .build(),
+            ShortcutInfoCompat.Builder(context, "dynamic_transfers")
+                .setShortLabel(getString(R.string.shortcut_transfers_short))
+                .setLongLabel(getString(R.string.shortcut_transfers_long))
+                .setIcon(IconCompat.createWithResource(context, android.R.drawable.ic_menu_upload))
+                .setIntent(Intent(context, MainActivity::class.java).apply {
+                    action = "com.explorer.fileexplorer.ACTION_SHORTCUT"
+                    putExtra("shortcut_route", "transfers")
+                })
+                .build()
+        )
+        try {
+            ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts)
+        } catch (_: Exception) {
+        }
     }
 }
 

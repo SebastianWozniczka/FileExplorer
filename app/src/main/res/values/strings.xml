@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_search_short" translatable="false">Search</string>
+    <string name="shortcut_search_long" translatable="false">Search files and folders</string>
+    <string name="shortcut_network_short" translatable="false">Network</string>
+    <string name="shortcut_network_long" translatable="false">Open network shares (FTP, SMB, WebDAV)</string>
+    <string name="shortcut_cloud_short" translatable="false">Cloud</string>
+    <string name="shortcut_cloud_long" translatable="false">Open cloud storage</string>
+    <string name="shortcut_apps_short" translatable="false">Apps</string>
+    <string name="shortcut_apps_long" translatable="false">Manage installed applications</string>
+    <string name="shortcut_analyzer_short" translatable="false">Storage Analyzer</string>
+    <string name="shortcut_analyzer_long" translatable="false">Analyze disk usage and storage space</string>
+    <string name="shortcut_transfers_short" translatable="false">Transfers</string>
+    <string name="shortcut_transfers_long" translatable="false">View active and completed transfers</string>
+</resources>

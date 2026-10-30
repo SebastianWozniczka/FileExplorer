@@ -1,6 +1,7 @@
 package com.explorer.fileexplorer.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -60,7 +61,13 @@ object Routes {
 fun AppNavigation(
     navController: NavHostController = rememberNavController(),
     initialPath: String? = null,
+    initialRoute: String? = null,
 ) {
+    LaunchedEffect(initialRoute) {
+        if (initialRoute != null && initialRoute != Routes.BROWSER) {
+            navController.navigate(initialRoute)
+        }
+    }
     NavHost(navController = navController, startDestination = Routes.BROWSER) {
         composable(Routes.BROWSER) {
             BrowserScreen(

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="shortcut_search"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_search"
+        android:shortcutShortLabel="@string/shortcut_search_short"
+        android:shortcutLongLabel="@string/shortcut_search_long">
+        <intent
+            android:action="com.explorer.fileexplorer.ACTION_SHORTCUT"
+            android:targetPackage="com.explorer.fileexplorer"
+            android:targetClass="com.explorer.fileexplorer.MainActivity">
+            <extra android:name="shortcut_route" android:value="search" />
+        </intent>
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="shortcut_network"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_share"
+        android:shortcutShortLabel="@string/shortcut_network_short"
+        android:shortcutLongLabel="@string/shortcut_network_long">
+        <intent
+            android:action="com.explorer.fileexplorer.ACTION_SHORTCUT"
+            android:targetPackage="com.explorer.fileexplorer"
+            android:targetClass="com.explorer.fileexplorer.MainActivity">
+            <extra android:name="shortcut_route" android:value="network" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="shortcut_cloud"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:shortcutShortLabel="@string/shortcut_cloud_short"
+        android:shortcutLongLabel="@string/shortcut_cloud_long">
+        <intent
+            android:action="com.explorer.fileexplorer.ACTION_SHORTCUT"
+            android:targetPackage="com.explorer.fileexplorer"
+            android:targetClass="com.explorer.fileexplorer.MainActivity">
+            <extra android:name="shortcut_route" android:value="cloud" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="shortcut_apps"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:shortcutShortLabel="@string/shortcut_apps_short"
+        android:shortcutLongLabel="@string/shortcut_apps_long">
+        <intent
+            android:action="com.explorer.fileexplorer.ACTION_SHORTCUT"
+            android:targetPackage="com.explorer.fileexplorer"
+            android:targetClass="com.explorer.fileexplorer.MainActivity">
+            <extra android:name="shortcut_route" android:value="apps" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="shortcut_analyzer"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:shortcutShortLabel="@string/shortcut_analyzer_short"
+        android:shortcutLongLabel="@string/shortcut_analyzer_long">
+        <intent
+            android:action="com.explorer.fileexplorer.ACTION_SHORTCUT"
+            android:targetPackage="com.explorer.fileexplorer"
+            android:targetClass="com.explorer.fileexplorer.MainActivity">
+            <extra android:name="shortcut_route" android:value="analyzer" />
+        </intent>
+    </shortcut>
+</shortcuts>

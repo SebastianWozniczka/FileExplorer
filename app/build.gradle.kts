@@ -31,11 +31,11 @@ android {
             storeFile = file("${rootProject.projectDir}/${signingProps.getProperty("STORE_FILE", "fileexplorer.jks")}")
             storePassword = signingProps.getProperty("STORE_PASSWORD")
                 ?: System.getenv("FILEEXPLORER_STORE_PASSWORD")
-                ?: error("Release signing: set STORE_PASSWORD in signing.properties or FILEEXPLORER_STORE_PASSWORD env var")
+                ?: "placeholder"
             keyAlias = signingProps.getProperty("KEY_ALIAS", "fileexplorer")
             keyPassword = signingProps.getProperty("KEY_PASSWORD")
                 ?: System.getenv("FILEEXPLORER_KEY_PASSWORD")
-                ?: error("Release signing: set KEY_PASSWORD in signing.properties or FILEEXPLORER_KEY_PASSWORD env var")
+                ?: "placeholder"
         }
     }
 
@@ -43,7 +43,23 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            val storePass = signingProps.getProperty("STORE_PASSWORD") ?: System.getenv("FILEEXPLORER_STORE_PASSWORD")
+            val keyPass = signingProps.getProperty("KEY_PASSWORD") ?: System.getenv("FILEEXPLORER_KEY_PASSWORD")
+            val isReleaseTask = gradle.startParameter.taskNames.any {
+                it.contains("assembleRelease", ignoreCase = true) ||
+                it.contains("bundleRelease", ignoreCase = true) ||
+                it.contains("publishRelease", ignoreCase = true) ||
+                it.equals("release", ignoreCase = true)
+            }
+            if (storePass == null || keyPass == null) {
+                if (isReleaseTask) {
+                    error("Release signing: set STORE_PASSWORD in signing.properties or FILEEXPLORER_STORE_PASSWORD env var")
+                } else {
+                    signingConfig = signingConfigs.getByName("debug")
+                }
+            } else {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
