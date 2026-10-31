@@ -2,11 +2,14 @@ package com.explorer.fileexplorer.feature.search
 
 import android.os.Environment
 import androidx.compose.animation.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -17,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -56,6 +60,7 @@ data class SearchUiState(
     val capabilityMatrix: RepositoryCapabilityMatrix = RepositoryCapabilityMatrix.unavailable(),
 )
 
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val repositoryFactory: FileRepositoryFactory,
@@ -68,6 +73,7 @@ class SearchViewModel @Inject constructor(
     private val _state = MutableStateFlow(SearchUiState())
     val state: StateFlow<SearchUiState> = _state.asStateFlow()
     private var searchJob: Job? = null
+    private val queryFlow = MutableStateFlow("")
 
     init {
         viewModelScope.launch {
@@ -80,29 +86,64 @@ class SearchViewModel @Inject constructor(
                 _state.update { it.copy(availableTags = tags) }
             }
         }
+        viewModelScope.launch {
+            queryFlow
+                .debounce(300L)
+                .collect { query ->
+                    if (query.isNotBlank() || _state.value.selectedTags.isNotEmpty()) {
+                        search()
+                    } else if (query.isEmpty() && _state.value.selectedTags.isEmpty()) {
+                        cancelSearch()
+                        _state.update { it.copy(results = emptyList()) }
+                    }
+                }
+        }
     }
 
-    fun updateQuery(query: String) { _state.update { it.copy(query = query) } }
+    fun updateQuery(query: String) {
+        _state.update { it.copy(query = query) }
+        queryFlow.value = query
+    }
+
     fun setSearchPath(path: String) {
         val repository = repositoryFactory.getRepository(path)
         val matrix = repository.capabilityMatrix(path)
         diagnosticLog.logCapabilities(matrix)
         _state.update { it.copy(searchPath = path, capabilityMatrix = matrix) }
     }
+
     fun applySavedSearch(query: String, path: String, useRegex: Boolean) {
         _state.update { it.copy(query = query, searchPath = path, useRegex = useRegex) }
         search()
     }
-    fun toggleRegex() { _state.update { it.copy(useRegex = !it.useRegex) } }
-    fun toggleHidden() { _state.update { it.copy(includeHidden = !it.includeHidden) } }
+
+    fun toggleRegex() {
+        _state.update { it.copy(useRegex = !it.useRegex) }
+        if (_state.value.query.isNotBlank() || _state.value.selectedTags.isNotEmpty()) search()
+    }
+
+    fun toggleHidden() {
+        _state.update { it.copy(includeHidden = !it.includeHidden) }
+        if (_state.value.query.isNotBlank() || _state.value.selectedTags.isNotEmpty()) search()
+    }
+
     fun toggleTag(tagName: String) {
         _state.update { state ->
             val selected = state.selectedTags.toMutableSet()
             if (!selected.add(tagName)) selected.remove(tagName)
             state.copy(selectedTags = selected)
         }
+        if (_state.value.query.isNotBlank() || _state.value.selectedTags.isNotEmpty()) search()
     }
-    fun clearTagFilters() { _state.update { it.copy(selectedTags = emptySet()) } }
+
+    fun clearTagFilters() {
+        _state.update { it.copy(selectedTags = emptySet()) }
+        if (_state.value.query.isNotBlank()) search()
+        else {
+            cancelSearch()
+            _state.update { it.copy(results = emptyList()) }
+        }
+    }
 
     fun search() {
         val query = _state.value.query.trim()
@@ -200,6 +241,8 @@ fun SearchScreen(
                         onValueChange = viewModel::updateQuery,
                         placeholder = { Text(stringResource(DesignSystemR.string.search_files_hint)) },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { viewModel.search() }),
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester),
@@ -303,7 +346,12 @@ fun SearchScreen(
                             ListItem(
                                 headlineContent = { Text(entry.query) },
                                 leadingContent = { Icon(Icons.Filled.History, null) },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.updateQuery(entry.query)
+                                        viewModel.search()
+                                    },
                             )
                         }
                     }

@@ -486,4 +486,9 @@
     <string name="host_key_mismatch">Gespeicherter Schlüssel stimmt nicht überein.</string>
     <string name="show_password_toggle">Passwort ein- oder ausblenden</string>
     <string name="unmount_volume">Volume aushängen</string>
+    <string name="ram_memory">RAM-Speicher</string>
+    <string name="ram_used">Verwendet: %1$s</string>
+    <string name="ram_available">Verfügbar: %1$s</string>
+    <string name="ram_total">Gesamt: %1$s</string>
+    <string name="low_memory">Warnung vor wenig Speicher</string>
 </resources>

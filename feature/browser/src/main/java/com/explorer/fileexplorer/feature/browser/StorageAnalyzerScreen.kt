@@ -7,6 +7,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import android.content.Context
+import android.app.ActivityManager
+import android.text.format.Formatter
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -14,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.*
@@ -180,6 +184,8 @@ fun StorageAnalyzerScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
         ) {
+            RamMemoryCard()
+            Spacer(Modifier.height(8.dp))
             if (state.isScanning) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Text(
@@ -530,4 +536,82 @@ private fun formatBytes(bytes: Long): String = when {
     bytes < 1024L * 1024L -> "%.1f KB".format(bytes / 1024.0)
     bytes < 1024L * 1024L * 1024L -> "%.1f MB".format(bytes / (1024.0 * 1024.0))
     else -> "%.2f GB".format(bytes / (1024.0 * 1024.0 * 1024.0))
+}
+
+@Composable
+private fun RamMemoryCard() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val activityManager = remember { context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager }
+    var memInfo by remember { mutableStateOf(ActivityManager.MemoryInfo()) }
+
+    LaunchedEffect(Unit) {
+        activityManager.getMemoryInfo(memInfo)
+    }
+
+    val total = memInfo.totalMem
+    val available = memInfo.availMem
+    val used = if (total > 0) total - available else 0L
+    val percent = if (total > 0) used.toFloat() / total.toFloat() else 0f
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        onClick = {
+            val info = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(info)
+            memInfo = info
+        },
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Memory, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(DesignSystemR.string.ram_memory), style = MaterialTheme.typography.titleMedium)
+                }
+                Text(
+                    text = "${(percent * 100).toInt()}%",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (percent > 0.85f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                )
+            }
+            LinearProgressIndicator(
+                progress = { percent },
+                modifier = Modifier.fillMaxWidth().height(6.dp),
+                color = if (percent > 0.85f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    stringResource(DesignSystemR.string.ram_used, Formatter.formatFileSize(context, used)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    stringResource(DesignSystemR.string.ram_available, Formatter.formatFileSize(context, available)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    stringResource(DesignSystemR.string.ram_total, Formatter.formatFileSize(context, total)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (memInfo.lowMemory) {
+                Text(
+                    stringResource(DesignSystemR.string.low_memory),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
 }

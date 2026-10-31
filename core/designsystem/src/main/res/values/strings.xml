@@ -494,4 +494,9 @@
     <string name="starting">Starting</string>
     <string name="could_not_start">Could not start</string>
     <string name="stopped">Stopped</string>
+    <string name="ram_memory" translatable="false">RAM Memory</string>
+    <string name="ram_used" translatable="false">Used: %1$s</string>
+    <string name="ram_available" translatable="false">Available: %1$s</string>
+    <string name="ram_total" translatable="false">Total: %1$s</string>
+    <string name="low_memory" translatable="false">Low memory warning</string>
 </resources>

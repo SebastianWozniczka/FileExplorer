@@ -1,6 +1,7 @@
 package com.explorer.fileexplorer.core.data
 
 import android.content.Context
+import android.os.Environment
 import android.webkit.MimeTypeMap
 import com.explorer.fileexplorer.core.model.ConflictNamePolicy
 import com.explorer.fileexplorer.core.model.ConflictResolution
@@ -38,6 +39,44 @@ class LocalFileRepository @Inject constructor(
     override fun deleteCapabilities(paths: List<String>): DeleteCapabilities = DeleteCapabilities.LOCAL_BEST_EFFORT
 
     override fun listFiles(path: String): Flow<List<FileItem>> = flow {
+        if (path == "/storage/emulated") {
+            val internalPath = Environment.getExternalStorageDirectory().absolutePath
+            val p = Paths.get(internalPath)
+            val item = if (Files.exists(p)) pathToFileItem(p) else FileItem(
+                name = "0",
+                path = internalPath,
+                isDirectory = true,
+                size = 0L,
+                lastModified = System.currentTimeMillis(),
+                mimeType = "inode/directory",
+            )
+            emit(listOf(item))
+            return@flow
+        }
+
+        if (path == "/storage") {
+            val items = mutableListOf<FileItem>()
+            val internalPath = Environment.getExternalStorageDirectory().absolutePath
+            val p = Paths.get(internalPath)
+            if (Files.exists(p)) {
+                items.add(pathToFileItem(p))
+            }
+            try {
+                val dir = Paths.get(path)
+                if (Files.isDirectory(dir)) {
+                    Files.newDirectoryStream(dir).use { stream ->
+                        for (entry in stream) {
+                            if (entry.toAbsolutePath().normalize().toString() != Paths.get(internalPath).toAbsolutePath().normalize().toString()) {
+                                items.add(pathToFileItem(entry))
+                            }
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+            emit(items)
+            return@flow
+        }
+
         val dir = Paths.get(path)
         if (!Files.isDirectory(dir)) {
             emit(emptyList())
@@ -51,6 +90,10 @@ class LocalFileRepository @Inject constructor(
                 }
             }
         } catch (e: Exception) {
+            if (e is AccessDeniedException || e is SecurityException || e is java.io.IOException) {
+                emit(emptyList())
+                return@flow
+            }
             throw e.asRepositoryException(capabilities.provider, RepositoryOperation.LIST)
         }
         emit(items)

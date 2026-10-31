@@ -496,4 +496,9 @@
     <string name="host_key_mismatch">Zapisany klucz dla tego hosta już nie pasuje.</string>
     <string name="show_password_toggle">Pokaż lub ukryj hasło</string>
     <string name="unmount_volume">Odmontuj wolumen</string>
+    <string name="ram_memory">Pamięć RAM</string>
+    <string name="ram_used">Używane: %1$s</string>
+    <string name="ram_available">Dostępne: %1$s</string>
+    <string name="ram_total">Całkowita: %1$s</string>
+    <string name="low_memory">Ostrzeżenie o niskim stanie pamięci</string>
 </resources>
