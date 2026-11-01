@@ -47,13 +47,13 @@ class MainActivity : ComponentActivity() {
         publishDynamicShortcuts()
 
         setContent {
-            val themeModeFlow = remember(settingsRepository) {
-                settingsRepository.settings.map { it.themeMode }
+            val settingsFlow = remember(settingsRepository) {
+                settingsRepository.settings
             }
-            val themeMode by themeModeFlow
-                .collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
+            val settings by settingsFlow
+                .collectAsStateWithLifecycle(initialValue = com.explorer.fileexplorer.feature.settings.SettingsState())
 
-            FileExplorerTheme(themeMode = themeMode) {
+            FileExplorerTheme(themeMode = settings.themeMode, fontScale = settings.textScale) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,

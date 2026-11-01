@@ -491,4 +491,8 @@
     <string name="ram_available">Verfügbar: %1$s</string>
     <string name="ram_total">Gesamt: %1$s</string>
     <string name="low_memory">Warnung vor wenig Speicher</string>
+    <string name="text_scale">Textskalierung</string>
+    <string name="text_scale_description">Unlesbare Texte in der App vergrößern</string>
+    <string name="folders_list">Ordnerliste</string>
+    <string name="folder_details">Ordnerdetails</string>
 </resources>

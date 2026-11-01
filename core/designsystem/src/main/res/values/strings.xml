@@ -499,4 +499,8 @@
     <string name="ram_available" translatable="false">Available: %1$s</string>
     <string name="ram_total" translatable="false">Total: %1$s</string>
     <string name="low_memory" translatable="false">Low memory warning</string>
+    <string name="text_scale" translatable="false">Text scale</string>
+    <string name="text_scale_description" translatable="false">Enlarge unreadable text across the application</string>
+    <string name="folders_list" translatable="false">Folders list</string>
+    <string name="folder_details" translatable="false">Folder details</string>
 </resources>

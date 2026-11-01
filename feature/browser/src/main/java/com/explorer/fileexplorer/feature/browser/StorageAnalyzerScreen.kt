@@ -2,8 +2,11 @@ package com.explorer.fileexplorer.feature.browser
 
 import android.os.Environment
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -138,7 +141,7 @@ class StorageAnalyzerViewModel @Inject constructor(
     }
 }
 
-private enum class AnalyzerSection { TREEMAP, DUPLICATES, LARGEST }
+private enum class AnalyzerSection { TREEMAP, FOLDERS, DUPLICATES, LARGEST }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,6 +153,7 @@ fun StorageAnalyzerScreen(
     var section by remember { mutableStateOf(AnalyzerSection.TREEMAP) }
     var nodeStack by remember(state.result) { mutableStateOf(state.result?.let { listOf(it.root) } ?: emptyList()) }
     var duplicateSelection by remember(state.result) { mutableStateOf(emptySet<String>()) }
+    var inspectedNode by remember(state.result) { mutableStateOf<StorageTreeNode?>(null) }
 
     BackHandler(enabled = nodeStack.size > 1) {
         nodeStack = nodeStack.dropLast(1)
@@ -231,22 +235,22 @@ fun StorageAnalyzerScreen(
             if (result == null) {
                 AnalyzerEmptyState(isScanning = state.isScanning, onScan = viewModel::scan)
             } else {
-                        AnalyzerSummary(result)
-                        if (!result.isComplete || !result.hashAnalysisComplete) {
-                            Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text(stringResource(DesignSystemR.string.analysis_incomplete), style = MaterialTheme.typography.bodySmall)
-                                    Text(
-                                        stringResource(DesignSystemR.string.analysis_skipped_files, result.skippedFiles),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    OutlinedButton(onClick = { viewModel.scan(resume = true) }, enabled = !state.isScanning) {
-                                        Text(stringResource(DesignSystemR.string.resume_analysis))
-                                    }
-                                }
+                AnalyzerSummary(result)
+                if (!result.isComplete || !result.hashAnalysisComplete) {
+                    Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(stringResource(DesignSystemR.string.analysis_incomplete), style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                stringResource(DesignSystemR.string.analysis_skipped_files, result.skippedFiles),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            OutlinedButton(onClick = { viewModel.scan(resume = true) }, enabled = !state.isScanning) {
+                                Text(stringResource(DesignSystemR.string.resume_analysis))
                             }
                         }
+                    }
+                }
                 Spacer(Modifier.height(12.dp))
                 AnalyzerSectionSelector(section = section, onSelect = { section = it })
                 Spacer(Modifier.height(8.dp))
@@ -265,6 +269,9 @@ fun StorageAnalyzerScreen(
                             onNodeClick = { node ->
                                 if (!node.isAggregate && node.children.isNotEmpty()) nodeStack = nodeStack + node
                             },
+                            onNodeLongClick = { node ->
+                                inspectedNode = node
+                            },
                         )
                         Text(
                             text = if (current.children.isEmpty()) stringResource(DesignSystemR.string.no_child_entries)
@@ -273,6 +280,9 @@ fun StorageAnalyzerScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 8.dp),
                         )
+                    }
+                    AnalyzerSection.FOLDERS -> {
+                        FoldersList(result.root)
                     }
                     AnalyzerSection.DUPLICATES -> DuplicateList(
                         groups = result.duplicateGroups,
@@ -297,6 +307,10 @@ fun StorageAnalyzerScreen(
                 }
             }
         }
+    }
+
+    inspectedNode?.let { node ->
+        FolderDetailsDialog(node = node, onDismiss = { inspectedNode = null })
     }
 }
 
@@ -343,38 +357,103 @@ private fun AnalyzerMetric(label: String, value: String, modifier: Modifier = Mo
 
 @Composable
 private fun AnalyzerSectionSelector(section: AnalyzerSection, onSelect: (AnalyzerSection) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
         AnalyzerSection.entries.forEach { candidate ->
             FilterChip(
                 selected = section == candidate,
                 onClick = { onSelect(candidate) },
-                label = { Text(candidate.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                label = {
+                    Text(
+                        when (candidate) {
+                            AnalyzerSection.TREEMAP -> "Treemap"
+                            AnalyzerSection.FOLDERS -> stringResource(DesignSystemR.string.folders_list)
+                            AnalyzerSection.DUPLICATES -> "Duplicates"
+                            AnalyzerSection.LARGEST -> "Largest files"
+                        }
+                    )
+                },
             )
         }
     }
 }
 
 @Composable
+private fun FoldersList(root: StorageTreeNode) {
+    val allFolders = remember(root) {
+        val list = mutableListOf<StorageTreeNode>()
+        fun collect(node: StorageTreeNode) {
+            if (node.isDirectory) {
+                list.add(node)
+                node.children.forEach(::collect)
+            }
+        }
+        collect(root)
+        list.sortedByDescending { it.size }
+    }
+
+    if (allFolders.isEmpty()) {
+        AnalyzerMessage(stringResource(DesignSystemR.string.no_child_entries))
+        return
+    }
+
+    LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        items(allFolders, key = { it.path }) { folder ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    headlineContent = { Text(folder.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    supportingContent = { Text(folder.path, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    trailingContent = { Text(formatBytes(folder.size), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FolderDetailsDialog(node: StorageTreeNode, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(DesignSystemR.string.folder_details)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(node.name, style = MaterialTheme.typography.titleLarge)
+                Text(node.path, style = MaterialTheme.typography.bodyMedium)
+                Text("${stringResource(DesignSystemR.string.file_size)}: ${formatBytes(node.size)}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(DesignSystemR.string.close)) }
+        },
+    )
+}
+
+@Composable
 private fun AnalyzerNodeBreadcrumb(stack: List<StorageTreeNode>, onUp: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Icon(Icons.Filled.Storage, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.width(6.dp))
-        Text(
-            stack.joinToString(" / ") { it.name },
-            style = MaterialTheme.typography.labelMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        stack.forEachIndexed { index, node ->
+            if (index > 0) Text("/")
+            TextButton(onClick = { /* jump */ }, enabled = false) {
+                Text(node.name.ifEmpty { "Root" }, maxLines = 1)
+            }
+        }
         if (stack.size > 1) TextButton(onClick = onUp) { Text(stringResource(DesignSystemR.string.up)) }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun StorageTreemap(
     nodes: List<StorageTreeNode>,
     modifier: Modifier = Modifier,
     onNodeClick: (StorageTreeNode) -> Unit,
+    onNodeLongClick: (StorageTreeNode) -> Unit,
 ) {
     val palette = listOf(
         MaterialTheme.colorScheme.primaryContainer,
@@ -385,13 +464,15 @@ private fun StorageTreemap(
     Layout(
         content = {
             nodes.forEachIndexed { index, node ->
-                val clickable = node.children.isNotEmpty() && !node.isAggregate
                 Box(
                     modifier = Modifier
                         .padding(2.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(palette[index % palette.size])
-                        .clickable(enabled = clickable) { onNodeClick(node) }
+                        .combinedClickable(
+                            onClick = { if (node.children.isNotEmpty()) onNodeClick(node) else onNodeLongClick(node) },
+                            onLongClick = { onNodeLongClick(node) },
+                        )
                         .padding(8.dp),
                 ) {
                     Column {

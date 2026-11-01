@@ -501,4 +501,8 @@
     <string name="ram_available">Dostępne: %1$s</string>
     <string name="ram_total">Całkowita: %1$s</string>
     <string name="low_memory">Ostrzeżenie o niskim stanie pamięci</string>
+    <string name="text_scale">Skala tekstu</string>
+    <string name="text_scale_description">Powiększaj nieczytelne napisy w całej aplikacji</string>
+    <string name="folders_list">Lista folderów</string>
+    <string name="folder_details">Szczegóły folderu</string>
 </resources>

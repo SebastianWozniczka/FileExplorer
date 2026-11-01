@@ -22,6 +22,7 @@ data class PortableSettings(
     val showDirectorySizes: Boolean = false,
     val swipeLeftAction: String = "NONE",
     val swipeRightAction: String = "NONE",
+    val textScale: Float = 1.0f,
 )
 
 /** Storage boundary used by [BackupManager] without coupling core data to a feature module. */
@@ -38,6 +39,8 @@ object PortableSettingsPolicy {
     const val MAX_THUMBNAIL_SIZE = 512
     const val MIN_CACHE_SIZE_MB = 32
     const val MAX_CACHE_SIZE_MB = 1_024
+    const val MIN_TEXT_SCALE = 1.0f
+    const val MAX_TEXT_SCALE = 2.0f
     const val MAX_ENUM_CHARS = 32
 
     private val viewValues = setOf("LIST", "GRID")
@@ -65,6 +68,9 @@ object PortableSettingsPolicy {
         if (settings.trashTtlDays !in trashTtlValues) {
             throw BackupFormatException("Backup field 'trashTtlDays' is outside its allowed range")
         }
+        if (settings.textScale !in MIN_TEXT_SCALE..MAX_TEXT_SCALE) {
+            throw BackupFormatException("Backup field 'textScale' is outside its allowed range")
+        }
     }
 
     /** Converts stale local preference values to the current safe defaults for export. */
@@ -79,6 +85,7 @@ object PortableSettingsPolicy {
         trashTtlDays = settings.trashTtlDays.takeIf(trashTtlValues::contains) ?: 30,
         swipeLeftAction = settings.swipeLeftAction.takeIf(swipeActionValues::contains) ?: "NONE",
         swipeRightAction = settings.swipeRightAction.takeIf(swipeActionValues::contains) ?: "NONE",
+        textScale = settings.textScale.coerceIn(MIN_TEXT_SCALE, MAX_TEXT_SCALE),
     )
 
     private fun validateEnum(name: String, value: String, allowed: Set<String>) {

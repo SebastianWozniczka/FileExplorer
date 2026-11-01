@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -118,6 +119,7 @@ val AppTypography = Typography(
 @Composable
 fun FileExplorerTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
+    fontScale: Float = 1.0f,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -134,9 +136,21 @@ fun FileExplorerTheme(
         ThemeMode.SYSTEM -> if (systemDark) DarkColorScheme else LightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AppTypography,
-        content = content,
-    )
+    val currentDensity = androidx.compose.ui.platform.LocalDensity.current
+    val customDensity = remember(currentDensity, fontScale) {
+        androidx.compose.ui.unit.Density(
+            density = currentDensity.density,
+            fontScale = currentDensity.fontScale * fontScale,
+        )
+    }
+
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.ui.platform.LocalDensity provides customDensity,
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = AppTypography,
+            content = content,
+        )
+    }
 }

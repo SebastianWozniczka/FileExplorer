@@ -75,6 +75,7 @@ object SettingsKeys {
     val SHOW_DIRECTORY_SIZES = booleanPreferencesKey("show_directory_sizes")
     val SWIPE_LEFT_ACTION = stringPreferencesKey("swipe_left_action")
     val SWIPE_RIGHT_ACTION = stringPreferencesKey("swipe_right_action")
+    val TEXT_SCALE = floatPreferencesKey("text_scale")
 }
 
 enum class ThumbnailCacheLocation(@androidx.annotation.StringRes val labelRes: Int, val key: String) {
@@ -145,6 +146,7 @@ data class SettingsState(
     val showDirectorySizes: Boolean = false,
     val swipeLeftAction: SwipeAction = SwipeAction.NONE,
     val swipeRightAction: SwipeAction = SwipeAction.NONE,
+    val textScale: Float = 1.0f,
 )
 
 @Singleton
@@ -173,6 +175,7 @@ class SettingsRepository @Inject constructor(
             showDirectorySizes = prefs[SettingsKeys.SHOW_DIRECTORY_SIZES] ?: false,
             swipeLeftAction = SwipeAction.fromKey(prefs[SettingsKeys.SWIPE_LEFT_ACTION]),
             swipeRightAction = SwipeAction.fromKey(prefs[SettingsKeys.SWIPE_RIGHT_ACTION]),
+            textScale = prefs[SettingsKeys.TEXT_SCALE] ?: 1.0f,
         )
     }
 
@@ -207,6 +210,7 @@ class SettingsRepository @Inject constructor(
                 showDirectorySizes = current.showDirectorySizes,
                 swipeLeftAction = current.swipeLeftAction.name,
                 swipeRightAction = current.swipeRightAction.name,
+                textScale = current.textScale,
             )
         },
     )
@@ -232,6 +236,7 @@ class SettingsRepository @Inject constructor(
                     preferences[SettingsKeys.SHOW_DIRECTORY_SIZES] = settings.showDirectorySizes
                     preferences[SettingsKeys.SWIPE_LEFT_ACTION] = settings.swipeLeftAction
                     preferences[SettingsKeys.SWIPE_RIGHT_ACTION] = settings.swipeRightAction
+                    preferences[SettingsKeys.TEXT_SCALE] = settings.textScale
                 }
                 check(
                     ThumbnailCacheSettings.write(
@@ -258,6 +263,7 @@ class SettingsRepository @Inject constructor(
                         preferences[SettingsKeys.SHOW_DIRECTORY_SIZES] = previous.showDirectorySizes
                         preferences[SettingsKeys.SWIPE_LEFT_ACTION] = previous.swipeLeftAction
                         preferences[SettingsKeys.SWIPE_RIGHT_ACTION] = previous.swipeRightAction
+                        preferences[SettingsKeys.TEXT_SCALE] = previous.textScale
                     }
                 }.onFailure(error::addSuppressed)
                 runCatching {
@@ -345,6 +351,7 @@ class SettingsViewModel @Inject constructor(
     fun toggleShowDirectorySizes() { viewModelScope.launch { repo.update(SettingsKeys.SHOW_DIRECTORY_SIZES, !state.value.showDirectorySizes) } }
     fun setSwipeLeftAction(action: SwipeAction) { viewModelScope.launch { repo.update(SettingsKeys.SWIPE_LEFT_ACTION, action.name) } }
     fun setSwipeRightAction(action: SwipeAction) { viewModelScope.launch { repo.update(SettingsKeys.SWIPE_RIGHT_ACTION, action.name) } }
+    fun setTextScale(scale: Float) { viewModelScope.launch { repo.update(SettingsKeys.TEXT_SCALE, scale) } }
     fun setThumbnailCacheSize(sizeMb: Int) {
         viewModelScope.launch {
             repo.updateThumbnailCache(sizeMb, state.value.thumbnailCacheLocation)
@@ -524,6 +531,11 @@ fun SettingsScreen(
                 onSizeChange = viewModel::setThumbnailCacheSize,
                 onLocationChange = viewModel::setThumbnailCacheLocation,
                 onPurge = viewModel::purgeThumbnailCache,
+            )
+
+            TextScaleSelector(
+                currentScale = state.textScale,
+                onSelect = viewModel::setTextScale,
             )
 
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -924,6 +936,38 @@ private fun ThemeSelector(
                         onClick = { onSelect(mode) },
                     )
                 },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TextScaleSelector(
+    currentScale: Float,
+    onSelect: (Float) -> Unit,
+) {
+    val options = listOf(
+        1.0f to "Normal (1.0x)",
+        1.15f to "Large (1.15x)",
+        1.3f to "Larger (1.3x)",
+        1.5f to "Extra Large (1.5x)",
+        2.0f to "Huge (2.0x)",
+    )
+    ListItem(
+        headlineContent = { Text(stringResource(DesignSystemR.string.text_scale)) },
+        supportingContent = { Text(stringResource(DesignSystemR.string.text_scale_description)) },
+    )
+    FlowRow(
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        options.forEach { (scale, label) ->
+            FilterChip(
+                selected = kotlin.math.abs(currentScale - scale) < 0.01f,
+                onClick = { onSelect(scale) },
+                label = { Text(label) },
             )
         }
     }
